@@ -48,22 +48,15 @@ local_file_path = '/tmp/file.parquet'
 s3_client.download_file(bucket_name, file_name, local_file_path)
 parquet = pq.ParquetFile(local_file_path)
 
-for i, row in enumerate(df.itertuples(index=False), 1):
-    message = {
-        'year': row.ano,
-        'champion': row.campeao,
-        'runnerUp': row.vice_campeao,
-        'result': row.resultado
-    }
 
-    for batch in parquet.iter_batches(batch_size=maxBatchSizeQueue):
-        df = batch.to_pandas()
-        batch_messages = [create_message(i, row) for i, row in enumerate(
-        df.itertuples(index=False), 1)]
-        sqs_client.send_message_batch(QueueUrl=queue_url, Entries=batch_messages)
+for batch in parquet.iter_batches(batch_size=maxBatchSizeQueue):
+    df = batch.to_pandas()
+    batch_messages = [create_message(i, row) for i, row in enumerate(
+    df.itertuples(index=False), 1)]
+    sqs_client.send_message_batch(QueueUrl=queue_url, Entries=batch_messages)
 
-    sqs_client.send_message_batch(
-            QueueUrl=queue_url, Entries=batch_messages)
+sqs_client.send_message_batch(
+        QueueUrl=queue_url, Entries=batch_messages)
 
 end = time.time()
 duration_in_seconds = end - start
